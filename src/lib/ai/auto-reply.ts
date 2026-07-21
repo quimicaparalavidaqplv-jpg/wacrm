@@ -5,6 +5,8 @@ import { retrieveKnowledge } from './knowledge'
 import { generateReply } from './generate'
 import { buildSystemPrompt } from './defaults'
 import { buildHandoffSummary } from './handoff'
+import { loadActiveAgents } from './agents'
+import { routeToAgent } from './router'
 import { logAiUsage } from './usage'
 import { latestUserMessage } from './query'
 import { engineSendText } from '@/lib/flows/meta-send'
@@ -69,7 +71,9 @@ export async function dispatchInboundToAiReply(
 
     const { data: conv, error: convErr } = await db
       .from('conversations')
-      .select('assigned_agent_id, ai_autoreply_disabled, ai_reply_count')
+      .select(
+        'assigned_agent_id, ai_autoreply_disabled, ai_reply_count, ai_active_agent_id',
+      )
       .eq('id', conversationId)
       .maybeSingle()
     if (convErr || !conv) return
@@ -98,6 +102,27 @@ export async function dispatchInboundToAiReply(
       return
     }
 
+    // Pick the specialist that should answer. Accounts that never set
+    // any up get `agent: null` and keep the single-persona behaviour.
+    const agents = await loadActiveAgents(db, accountId)
+    const route = await routeToAgent({
+      config,
+      agents,
+      messages,
+      stickyAgentId: conv.ai_active_agent_id ?? null,
+    })
+
+    // The classifier spends tokens on the owner's key too — log it under
+    // its own mode so "why is my bill higher" has an honest answer.
+    void logAiUsage(db, {
+      accountId,
+      conversationId,
+      mode: 'router',
+      provider: config.provider,
+      model: config.model,
+      usage: route.usage,
+    })
+
     // Ground the reply in the account's knowledge base (best-effort).
     const knowledge = await retrieveKnowledge(
       db,
@@ -110,6 +135,7 @@ export async function dispatchInboundToAiReply(
       userPrompt: config.systemPrompt,
       mode: 'auto_reply',
       knowledge,
+      agentPrompt: route.agent?.systemPrompt ?? null,
     })
 
     const { text, handoff, usage } = await generateReply({
@@ -130,9 +156,17 @@ export async function dispatchInboundToAiReply(
       provider: config.provider,
       model: config.model,
       usage,
+      agentId: route.agent?.id ?? null,
     })
 
-    if (handoff || !text) {
+    // An account that configured specialists but whose router couldn't
+    // land on one (no fallback marked, unrecognised answer, nothing
+    // sticky) has effectively told us "only these personas may speak".
+    // Answering anyway with the generic persona would put words in the
+    // business's mouth that no agent was written to say — hand off
+    // instead. Accounts with no specialists at all are unaffected.
+    const unroutable = agents.length > 0 && !route.agent
+    if (handoff || unroutable || !text) {
       // The model can't (or shouldn't) answer — stop auto-replying on
       // this thread and hand it to a human. We (a) pause the bot here
       // (sticky until re-enabled), (b) route the conversation to the
@@ -178,6 +212,16 @@ export async function dispatchInboundToAiReply(
       return
     }
     if (claimed !== true) return // lost the per-conversation cap race
+
+    // Remember who handled this thread so the next inbound stays with
+    // them (see `routeToAgent`'s stickiness). Best-effort: a failed
+    // write costs continuity on the next message, never this reply.
+    if (route.agent && route.agent.id !== conv.ai_active_agent_id) {
+      await db
+        .from('conversations')
+        .update({ ai_active_agent_id: route.agent.id })
+        .eq('id', conversationId)
+    }
 
     await engineSendText({
       accountId,

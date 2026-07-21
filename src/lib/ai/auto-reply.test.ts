@@ -8,6 +8,7 @@ const h = vi.hoisted(() => ({
   retrieveKnowledge: vi.fn(),
   generateReply: vi.fn(),
   engineSendText: vi.fn(),
+  loadActiveAgents: vi.fn(),
   state: {
     conv: null as Record<string, unknown> | null,
     autoResponders: [] as { id: string }[],
@@ -21,6 +22,18 @@ vi.mock('./config', () => ({ loadAiConfig: h.loadAiConfig }))
 vi.mock('./context', () => ({ buildConversationContext: h.buildConversationContext }))
 vi.mock('./knowledge', () => ({ retrieveKnowledge: h.retrieveKnowledge }))
 vi.mock('./generate', () => ({ generateReply: h.generateReply }))
+// Only the roster lookup is stubbed — `routeToAgent` runs for real, so
+// these tests exercise the actual routing integration rather than a
+// mock of it. Default is `[]`: the single-persona behaviour every test
+// written before migration 037 assumes.
+//
+// Partial mock via `importOriginal`: the router imports `agentBySlug`
+// and `fallbackAgent` from this same module, and replacing it wholesale
+// would strip them.
+vi.mock('./agents', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./agents')>()),
+  loadActiveAgents: h.loadActiveAgents,
+}))
 vi.mock('@/lib/flows/meta-send', () => ({ engineSendText: h.engineSendText }))
 vi.mock('./admin-client', () => ({
   supabaseAdmin: () => ({
@@ -86,8 +99,10 @@ beforeEach(() => {
     assigned_agent_id: null,
     ai_autoreply_disabled: false,
     ai_reply_count: 0,
+    ai_active_agent_id: null,
   }
   h.state.autoResponders = []
+  h.loadActiveAgents.mockResolvedValue([])
   h.state.claim = true
   h.state.updatePayload = null
   h.state.rpcCalls = []
@@ -207,6 +222,104 @@ describe('dispatchInboundToAiReply — handoff', () => {
     expect(h.state.updatePayload).toMatchObject({
       ai_autoreply_disabled: true,
       assigned_agent_id: 'agent-7',
+    })
+  })
+})
+
+// ============================================================
+// Specialised agents (migration 037). `loadActiveAgents` is stubbed but
+// the router itself is real, so these cover the wiring end to end: the
+// classifier's answer selecting a persona, that persona's prompt
+// reaching the model, and the choice being remembered on the thread.
+// ============================================================
+describe('dispatchInboundToAiReply — agent routing', () => {
+  const VENTAS = {
+    id: 'ag-ventas',
+    name: 'Ventas al Mayor',
+    slug: 'ventas_mayor',
+    description: 'compras por volumen',
+    systemPrompt: 'Eres la asesora mayorista.',
+    isActive: true,
+    isFallback: false,
+    sortOrder: 0,
+  }
+  const ORQ = {
+    id: 'ag-orq',
+    name: 'Orquestador',
+    slug: 'orquestador',
+    description: 'mensajes ambiguos',
+    systemPrompt: 'Eres el orquestador.',
+    isActive: true,
+    isFallback: true,
+    sortOrder: 1,
+  }
+
+  it("injects the routed agent's prompt and remembers the choice", async () => {
+    h.loadActiveAgents.mockResolvedValue([VENTAS, ORQ])
+    h.generateReply
+      .mockResolvedValueOnce({ text: 'ventas_mayor', handoff: false }) // router
+      .mockResolvedValueOnce({ text: '¡Claro!', handoff: false }) // reply
+
+    await dispatchInboundToAiReply(ARGS)
+
+    const replyPrompt = h.generateReply.mock.calls[1][0].systemPrompt as string
+    expect(replyPrompt).toContain('Eres la asesora mayorista.')
+    expect(replyPrompt).not.toContain('Eres el orquestador.')
+    expect(h.state.updatePayload).toMatchObject({
+      ai_active_agent_id: 'ag-ventas',
+    })
+    expect(h.engineSendText).toHaveBeenCalledWith(
+      expect.objectContaining({ text: '¡Claro!' }),
+    )
+  })
+
+  it('skips the classification call when only one agent is active', async () => {
+    h.loadActiveAgents.mockResolvedValue([VENTAS])
+    h.generateReply.mockResolvedValue({ text: 'Hola', handoff: false })
+
+    await dispatchInboundToAiReply(ARGS)
+
+    // One call total: the reply. No tokens burned on routing.
+    expect(h.generateReply).toHaveBeenCalledTimes(1)
+    expect(h.generateReply.mock.calls[0][0].systemPrompt).toContain(
+      'Eres la asesora mayorista.',
+    )
+  })
+
+  it('does not rewrite the sticky agent when routing lands on the same one', async () => {
+    h.state.conv = {
+      assigned_agent_id: null,
+      ai_autoreply_disabled: false,
+      ai_reply_count: 0,
+      ai_active_agent_id: 'ag-ventas',
+    }
+    h.loadActiveAgents.mockResolvedValue([VENTAS, ORQ])
+    h.generateReply
+      .mockResolvedValueOnce({ text: 'ventas_mayor', handoff: false })
+      .mockResolvedValueOnce({ text: 'Sigo yo', handoff: false })
+
+    await dispatchInboundToAiReply(ARGS)
+
+    expect(h.state.updatePayload).toBeNull()
+    expect(h.engineSendText).toHaveBeenCalled()
+  })
+
+  it('hands off rather than answering when no agent can be routed to', async () => {
+    // Agents configured but none marked fallback, and the classifier
+    // returns something unrecognisable → nothing legitimate to say.
+    h.loadActiveAgents.mockResolvedValue([
+      VENTAS,
+      { ...ORQ, isFallback: false },
+    ])
+    h.generateReply
+      .mockResolvedValueOnce({ text: 'no sé', handoff: false })
+      .mockResolvedValueOnce({ text: 'una respuesta', handoff: false })
+
+    await dispatchInboundToAiReply(ARGS)
+
+    expect(h.engineSendText).not.toHaveBeenCalled()
+    expect(h.state.updatePayload).toMatchObject({
+      ai_autoreply_disabled: true,
     })
   })
 })

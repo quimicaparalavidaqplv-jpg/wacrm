@@ -54,8 +54,16 @@ export function buildSystemPrompt(args: {
   mode: 'draft' | 'auto_reply'
   /** Knowledge-base excerpts retrieved for the current question. */
   knowledge?: string[]
+  /**
+   * The routed specialist's persona (migration 037), appended after the
+   * account-wide context so the two compose: `userPrompt` carries brand
+   * voice and company facts that apply to every agent, this carries the
+   * role, tone and closing rules of the one agent that was selected.
+   * Absent on accounts that never configured specialists.
+   */
+  agentPrompt?: string | null
 }): string {
-  const { userPrompt, mode, knowledge } = args
+  const { userPrompt, mode, knowledge, agentPrompt } = args
   const parts: string[] = [
     'You are a customer-messaging assistant for a business that uses a WhatsApp CRM. ' +
       'You are shown the recent WhatsApp conversation between the business (assistant) and a customer (user). ' +
@@ -74,6 +82,16 @@ export function buildSystemPrompt(args: {
 
   if (userPrompt && userPrompt.trim()) {
     parts.push(`Business context and instructions:\n${userPrompt.trim()}`)
+  }
+
+  // The specialist goes last among the instruction blocks so its rules
+  // read as the most specific layer — closest to the model's output and
+  // therefore the strongest signal when it conflicts with the generic
+  // account-wide context above.
+  if (agentPrompt && agentPrompt.trim()) {
+    parts.push(
+      `You are acting as the following specialised agent. Follow its role, tone and rules for this reply:\n${agentPrompt.trim()}`,
+    )
   }
 
   if (knowledge && knowledge.length > 0) {

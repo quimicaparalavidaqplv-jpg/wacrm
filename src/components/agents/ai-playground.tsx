@@ -11,6 +11,11 @@ interface Turn {
   content: string;
   /** assistant-only: the agent signalled a human handoff on this turn. */
   handoff?: boolean;
+  /** assistant-only: which specialised agent the router picked. Null on
+   *  accounts with no agents configured (single-persona setups). */
+  agentName?: string | null;
+  /** assistant-only: server-side explanation when nothing could answer. */
+  notice?: string;
 }
 
 export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
@@ -61,6 +66,8 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
               ? data.reply
               : '',
           handoff: Boolean(data.handoff),
+          agentName: data.agent?.name ?? null,
+          notice: typeof data.notice === 'string' ? data.notice : undefined,
         },
       ]);
     } catch {
@@ -143,7 +150,18 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
                   : 'rounded-bl-sm bg-muted text-foreground',
               )}
             >
+              {/* Which specialist answered — the sandbox's main
+                  diagnostic. Shown above the reply so a misroute is
+                  obvious before you finish reading the text. */}
+              {t.role === 'assistant' && t.agentName && (
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-primary">
+                  {t.agentName}
+                </p>
+              )}
               {t.content && <p className="whitespace-pre-wrap">{t.content}</p>}
+              {t.role === 'assistant' && t.notice && (
+                <p className="text-xs text-amber-500">{t.notice}</p>
+              )}
               {t.role === 'assistant' && t.handoff && (
                 <p
                   className={cn(

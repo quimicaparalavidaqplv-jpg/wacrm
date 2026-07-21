@@ -5,6 +5,8 @@ import { loadAiConfig } from '@/lib/ai/config'
 import { retrieveKnowledge } from '@/lib/ai/knowledge'
 import { generateReply } from '@/lib/ai/generate'
 import { buildSystemPrompt } from '@/lib/ai/defaults'
+import { loadActiveAgents } from '@/lib/ai/agents'
+import { routeToAgent } from '@/lib/ai/router'
 import { latestUserMessage } from '@/lib/ai/query'
 import { AiError, type ChatMessage } from '@/lib/ai/types'
 
@@ -72,6 +74,42 @@ export async function POST(request: Request) {
       )
     }
 
+    // Route exactly as the live bot does, so the sandbox answers the
+    // question that actually matters: *which* agent picks this message
+    // up, and what does it then say. The agent + reason travel back to
+    // the client so a misrouted message is diagnosable — you can see the
+    // wrong specialist was chosen rather than guessing why the wording
+    // is off.
+    //
+    // Uses the RLS-scoped SSR client: an admin testing the sandbox can
+    // only ever route to their own account's agents.
+    const agents = await loadActiveAgents(supabase, accountId)
+    const route = await routeToAgent({
+      config,
+      agents,
+      messages,
+      // The sandbox is stateless — every run re-routes from scratch, so
+      // testing a given message is reproducible instead of depending on
+      // whatever the previous turn happened to pick.
+      stickyAgentId: null,
+    })
+
+    // Mirrors the live rule in `dispatchInboundToAiReply`: with agents
+    // configured but none selectable, the bot hands off rather than
+    // answering with the generic persona. Surfacing that here is the
+    // point — it's exactly the misconfiguration the sandbox should
+    // expose before a customer hits it.
+    if (agents.length > 0 && !route.agent) {
+      return NextResponse.json({
+        reply: '',
+        handoff: true,
+        agent: null,
+        routing: route.reason,
+        notice:
+          'Ningún agente pudo atender este mensaje. En producción se escalaría a un humano. Marca un agente como predeterminado para cubrir estos casos.',
+      })
+    }
+
     const knowledge = await retrieveKnowledge(
       supabase,
       accountId,
@@ -82,10 +120,18 @@ export async function POST(request: Request) {
       userPrompt: config.systemPrompt,
       mode: 'auto_reply',
       knowledge,
+      agentPrompt: route.agent?.systemPrompt ?? null,
     })
 
     const { text, handoff } = await generateReply({ config, systemPrompt, messages })
-    return NextResponse.json({ reply: text, handoff })
+    return NextResponse.json({
+      reply: text,
+      handoff,
+      agent: route.agent
+        ? { id: route.agent.id, name: route.agent.name, slug: route.agent.slug }
+        : null,
+      routing: route.reason,
+    })
   } catch (err) {
     if (err instanceof AiError) {
       return NextResponse.json(
