@@ -147,18 +147,23 @@ html[data-mode="light"] {
 
 /* ---- ACCENT: primary color ---- */
 
+/* QPLV brand theme — morado #5d3189 */
 :root,
 html[data-theme="violet"] {
-  --primary: oklch(0.526 0.247 293);
+  --primary: oklch(0.374 0.178 304);
   --primary-foreground: oklch(0.985 0 0);
-  --primary-hover: oklch(0.6 0.22 293);
-  --primary-soft: oklch(0.526 0.247 293 / 0.12);
-  --primary-soft-2: oklch(0.526 0.247 293 / 0.2);
-  --ring: oklch(0.526 0.247 293);
-  --chart-1: oklch(0.526 0.247 293);
-  --sidebar-primary: oklch(0.526 0.247 293);
+  --primary-hover: oklch(0.47 0.19 304);
+  --primary-soft: oklch(0.374 0.178 304 / 0.12);
+  --primary-soft-2: oklch(0.374 0.178 304 / 0.22);
+  --ring: oklch(0.374 0.178 304);
+  --chart-1: oklch(0.374 0.178 304);
+  --chart-2: oklch(0.779 0.115 352);
+  --chart-3: oklch(0.643 0.164 141);
+  --chart-4: oklch(0.831 0.186 82);
+  --chart-5: oklch(0.875 0.181 111);
+  --sidebar-primary: oklch(0.374 0.178 304);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-ring: oklch(0.526 0.247 293);
+  --sidebar-ring: oklch(0.374 0.178 304);
 }
 
 html[data-theme="emerald"] {
