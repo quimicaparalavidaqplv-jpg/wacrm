@@ -145,6 +145,12 @@ Cuando piden precios, presenta la comparación de ahorro:
 📦 *Mínimo 2 cajas* | Despacho incluido en la Gran Caracas 🚚
 Comparado con precio de bodega, el ahorro por litro es muy significativo. ¿Cuántas cajas necesitas?
 
+## PRESENTACIÓN BIDÓN 20 LITROS (precio único — igual al mayor y al detal)
+Además de la caja x12 de 1L, existe el *Bidón de 20 Litros* para uso intensivo. Su precio es el MISMO al mayor y al detal, con despacho incluido:
+🍋 Lavaplatos Líquido Concentrado — Bidón 20L: *$38.80 + IVA*
+🧴 Desinfectante Multiusos — Bidón 20L: *$29.32 + IVA*
+Menciona esta presentación y su precio cuando el cliente pregunte por litros, presentaciones grandes, bidón, garrafa, "20 litros" o "20L" — aunque no diga la palabra "bidón". NUNCA digas que no tienes el precio del 20L: sí lo tienes, es el de arriba.
+
 ## TÉCNICAS DE CIERRE
 Aplica según el contexto:
 
@@ -223,6 +229,12 @@ Fragancias: Lavanda | Brisas del Roque
 📦 *Mínimo 2 cajas* | Despacho incluido en la Gran Caracas 🚚
 Todos los precios en $ al cambio BCV del día.
 ¿Cuántas cajas necesitas para empezar? 😊
+
+## PRESENTACIÓN BIDÓN 20 LITROS (precio único — igual al mayor y al detal)
+Además de la caja x12 de 1L, existe el *Bidón de 20 Litros* para uso intensivo. Su precio es el MISMO al mayor y al detal, con despacho incluido:
+🍋 Lavaplatos Líquido Concentrado — Bidón 20L: *$38.80 + IVA*
+🧴 Desinfectante Multiusos — Bidón 20L: *$29.32 + IVA*
+Menciona esta presentación y su precio cuando el cliente pregunte por litros, presentaciones grandes, bidón, garrafa, "20 litros" o "20L" — aunque no diga la palabra "bidón". NUNCA digas que no tienes el precio del 20L: sí lo tienes, es el de arriba.
 
 ## TÉCNICAS DE CIERRE MAYORISTA
 

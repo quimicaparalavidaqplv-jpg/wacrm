@@ -8,6 +8,7 @@ import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
 import { dispatchInboundToAiReply } from '@/lib/ai/auto-reply'
+import { transcribeInboundAudio } from '@/lib/ai/transcribe'
 import { dispatchWebhookEvent } from '@/lib/webhooks/deliver'
 import {
   handleTemplateWebhookChange,
@@ -615,6 +616,23 @@ async function processMessage(
   const { contentText, mediaUrl, mediaType, interactiveReplyId } =
     await parseMessageContent(message, accessToken)
 
+  // Voice notes arrive as audio with no text, so the AI (and any
+  // text-driven flow/automation) can't act on them. Transcribe to text
+  // best-effort and treat the transcript as the message's text from here
+  // on — stored on the audio row, fed to the bot, and shown to the human
+  // agent. `transcribeInboundAudio` never throws; a failure leaves
+  // `effectiveText` null and the audio is stored untranscribed as before.
+  let effectiveText = contentText
+  if (message.type === 'audio' && message.audio?.id && !effectiveText) {
+    effectiveText = await transcribeInboundAudio({
+      db: supabaseAdmin(),
+      accountId,
+      mediaId: message.audio.id,
+      mimeType: message.audio.mime_type,
+      accessToken,
+    })
+  }
+
   // Resolve swipe-reply context if present. A missing parent is fine —
   // we just store NULL and the UI renders the message without a quote.
   let replyToInternalId: string | null = null
@@ -670,7 +688,7 @@ async function processMessage(
     conversation_id: conversation.id,
     sender_type: 'customer',
     content_type: contentType,
-    content_text: contentText,
+    content_text: effectiveText,
     media_url: mediaUrl,
     message_id: message.id,
     status: 'delivered',
@@ -691,7 +709,7 @@ async function processMessage(
   const { error: convError } = await supabaseAdmin()
     .from('conversations')
     .update({
-      last_message_text: contentText || `[${message.type}]`,
+      last_message_text: effectiveText || `[${message.type}]`,
       last_message_at: new Date().toISOString(),
       unread_count: (conversation.unread_count || 0) + 1,
       updated_at: new Date().toISOString(),
@@ -741,7 +759,7 @@ async function processMessage(
           }
         : {
             kind: 'text',
-            text: contentText ?? message.text?.body ?? '',
+            text: effectiveText ?? message.text?.body ?? '',
             meta_message_id: message.id,
           },
     isFirstInboundMessage,
@@ -753,7 +771,7 @@ async function processMessage(
   // message all exist before any step — including send_message — runs.
   // Fire-and-forget: a slow or failing automation must not block the
   // webhook's 200 OK response to Meta.
-  const inboundText = contentText ?? message.text?.body ?? ''
+  const inboundText = effectiveText ?? message.text?.body ?? ''
   const automationTriggers: (
     | 'new_contact_created'
     | 'first_inbound_message'
@@ -822,7 +840,7 @@ async function processMessage(
     contact_id: contactRecord.id,
     whatsapp_message_id: message.id,
     content_type: contentType,
-    text: contentText,
+    text: effectiveText,
   })
 }
 
