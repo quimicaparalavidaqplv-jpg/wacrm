@@ -197,7 +197,7 @@ export async function dispatchInboundToAiReply(
         conversationId,
         contactId,
         reason: 'handoff',
-        lastCustomerMessage: latestUserMessage(messages),
+        messages,
       })
       return
     }
@@ -256,7 +256,7 @@ export async function dispatchInboundToAiReply(
         conversationId,
         contactId,
         reason: slug === 'confirmar_pedido' ? 'compra' : 'soporte_humano',
-        lastCustomerMessage: latestUserMessage(messages),
+        messages,
       })
     }
   } catch (err) {
