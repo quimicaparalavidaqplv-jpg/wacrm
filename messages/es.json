@@ -18,6 +18,7 @@
     "title": "QPLV CRM",
     "dashboard": "Panel",
     "inbox": "Bandeja de entrada",
+    "pending": "Pendientes",
     "notifications": "Notificaciones",
     "contacts": "Contactos",
     "pipelines": "Embudos",
@@ -29,6 +30,7 @@
     "beta": "Beta",
     "unreadConversations": "{count} {count, plural, =1 {conversación sin leer} other {conversaciones sin leer}}",
     "unreadNotifications": "{count} {count, plural, =1 {notificación sin leer} other {notificaciones sin leer}}",
+    "pendingCount": "{count} {count, plural, =1 {conversación pendiente} other {conversaciones pendientes}}",
     "roleOwner": "Propietario",
     "roleAdmin": "Administrador",
     "roleAgent": "Agente",
@@ -59,6 +61,24 @@
   },
   "ModeToggle": {
     "switchMode": "Cambiar a modo {mode}"
+  },
+  "Pending": {
+    "title": "Pendientes",
+    "subtitle": "Conversaciones que el bot escaló y aún nadie ha atendido. Las que más tiempo llevan esperando aparecen primero.",
+    "loading": "Cargando pendientes…",
+    "refresh": "Actualizar",
+    "empty": "¡Todo al día!",
+    "emptyHint": "No hay conversaciones esperando atención.",
+    "loadError": "No se pudieron cargar las conversaciones pendientes.",
+    "unknownContact": "Contacto desconocido",
+    "reasonCompra": "🔥 Quiere comprar",
+    "reasonSoporte": "🙋 Pide asesor",
+    "reasonHandoff": "⚠️ Requiere atención",
+    "waitingM": "esperando hace {min} min",
+    "waitingH": "esperando hace {hr} h",
+    "waitingD": "esperando hace {day} d",
+    "openInInbox": "Abrir en la bandeja",
+    "replyWhatsapp": "Responder por WhatsApp"
   },
   "Dashboard": {
     "page": {

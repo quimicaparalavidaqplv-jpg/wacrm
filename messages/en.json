@@ -18,6 +18,7 @@
     "title": "QPLV CRM",
     "dashboard": "Dashboard",
     "inbox": "Inbox",
+    "pending": "Pending",
     "notifications": "Notifications",
     "contacts": "Contacts",
     "pipelines": "Pipelines",
@@ -29,6 +30,7 @@
     "beta": "Beta",
     "unreadConversations": "{count} unread {count, plural, =1 {conversation} other {conversations}}",
     "unreadNotifications": "{count} unread {count, plural, =1 {notification} other {notifications}}",
+    "pendingCount": "{count} pending {count, plural, =1 {conversation} other {conversations}}",
     "roleOwner": "Owner",
     "roleAdmin": "Admin",
     "roleAgent": "Agent",
@@ -59,6 +61,24 @@
   },
   "ModeToggle": {
     "switchMode": "Switch to {mode} mode"
+  },
+  "Pending": {
+    "title": "Pending",
+    "subtitle": "Conversations the bot escalated that no one has picked up yet. Longest-waiting first.",
+    "loading": "Loading pending…",
+    "refresh": "Refresh",
+    "empty": "All caught up!",
+    "emptyHint": "No conversations waiting for attention.",
+    "loadError": "Couldn't load pending conversations.",
+    "unknownContact": "Unknown contact",
+    "reasonCompra": "🔥 Wants to buy",
+    "reasonSoporte": "🙋 Wants an advisor",
+    "reasonHandoff": "⚠️ Needs attention",
+    "waitingM": "waiting {min} min",
+    "waitingH": "waiting {hr} h",
+    "waitingD": "waiting {day} d",
+    "openInInbox": "Open in inbox",
+    "replyWhatsapp": "Reply on WhatsApp"
   },
   "Dashboard": {
     "page": {
