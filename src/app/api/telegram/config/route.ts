@@ -6,7 +6,10 @@ import {
 } from '@/lib/auth/account'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 import { encrypt, decrypt } from '@/lib/whatsapp/encryption'
-import { sendTelegramMessage } from '@/lib/notify/telegram'
+import {
+  sendTelegramMessage,
+  supergroupChatIdVariant,
+} from '@/lib/notify/telegram'
 
 function bad(message: string) {
   return NextResponse.json({ error: message }, { status: 400 })
@@ -97,11 +100,27 @@ export async function POST(request: Request) {
 
     // Verify before save: send a real test message. Catches a wrong token,
     // a wrong chat id, or a bot that was never added to the group.
-    const ok = await sendTelegramMessage({
+    const testText =
+      '✅ <b>QPLV CRM</b> conectado a Telegram. Aquí llegarán las alertas de ventas.'
+    let effectiveChatId = chatId
+    let ok = await sendTelegramMessage({
       botToken: tokenPlain,
       chatId,
-      text: '✅ <b>QPLV CRM</b> conectado a Telegram. Aquí llegarán las alertas de ventas.',
+      text: testText,
     })
+    // Common mistake: a supergroup id reported without its `-100` prefix.
+    // Transparently retry with the corrected id and persist that one.
+    if (!ok) {
+      const alt = supergroupChatIdVariant(chatId)
+      if (alt) {
+        ok = await sendTelegramMessage({
+          botToken: tokenPlain,
+          chatId: alt,
+          text: testText,
+        })
+        if (ok) effectiveChatId = alt
+      }
+    }
     if (!ok) {
       return bad(
         'No se pudo enviar el mensaje de prueba. Revisa el token, el chat id, y que el bot esté agregado al grupo.',
@@ -111,7 +130,7 @@ export async function POST(request: Request) {
     const row = {
       account_id: accountId,
       bot_token: encrypt(tokenPlain),
-      chat_id: chatId,
+      chat_id: effectiveChatId,
       enabled,
       updated_at: new Date().toISOString(),
     }

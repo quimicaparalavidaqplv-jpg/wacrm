@@ -91,3 +91,17 @@ export async function sendTelegramMessage(args: {
 export function escapeTelegramHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
+
+/**
+ * Telegram supergroups use a chat id prefixed with `-100`. Helper tools
+ * (e.g. @getidsbot) sometimes report the "short" id (e.g. -3073959457),
+ * which `sendMessage` rejects with "chat not found". Given such a short
+ * negative id, return the `-100`-prefixed variant to retry with; null when
+ * the id is already `-100`-prefixed or isn't a plain negative integer.
+ */
+export function supergroupChatIdVariant(chatId: string): string | null {
+  const s = chatId.trim()
+  if (!/^-\d+$/.test(s)) return null
+  if (s.startsWith('-100')) return null
+  return '-100' + s.slice(1)
+}
