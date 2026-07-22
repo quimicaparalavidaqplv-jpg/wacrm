@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import { DollarSign, ChevronDown, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -30,6 +31,33 @@ export function ConversionControl({
   const t = useTranslations("Inbox.conversion");
   const [outcome, setOutcome] = useState<ConversionOutcome>(initialOutcome);
   const [busy, setBusy] = useState(false);
+
+  // Sync to the real value of THIS conversation. The inbox reuses one
+  // MessageThread instance across conversation switches, so this control
+  // doesn't remount — without this, the local state from the previous chat
+  // would stick and look like every chat has the same mark. Re-reads on
+  // every conversationId change, straight from the row (RLS-scoped).
+  useEffect(() => {
+    let cancelled = false;
+    setOutcome(initialOutcome);
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("conversations")
+        .select("conversion_outcome")
+        .eq("id", conversationId)
+        .maybeSingle();
+      if (!cancelled && data) {
+        setOutcome((data.conversion_outcome as ConversionOutcome) ?? null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // initialOutcome intentionally omitted: it's just the first-paint
+    // seed; the fetch is the source of truth and re-runs per conversation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
 
   const set = async (next: ConversionOutcome) => {
     setBusy(true);
