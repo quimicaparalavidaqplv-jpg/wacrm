@@ -9,6 +9,7 @@ import { loadActiveAgents } from './agents'
 import { routeToAgent } from './router'
 import { logAiUsage } from './usage'
 import { latestUserMessage } from './query'
+import { escalateConversation } from './escalation'
 import { engineSendText } from '@/lib/flows/meta-send'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
@@ -188,6 +189,16 @@ export async function dispatchInboundToAiReply(
         update.assigned_agent_id = config.handoffAgentId
       }
       await db.from('conversations').update(update).eq('id', conversationId)
+      // Alert the sales queue: the bot couldn't resolve this one, so a
+      // human needs to pick it up. Best-effort; marks the thread once.
+      await escalateConversation({
+        db,
+        accountId,
+        conversationId,
+        contactId,
+        reason: 'handoff',
+        lastCustomerMessage: latestUserMessage(messages),
+      })
       return
     }
 
@@ -231,6 +242,23 @@ export async function dispatchInboundToAiReply(
       text,
       aiGenerated: true,
     })
+
+    // Hot-lead escalation. The bot still answered the customer above; this
+    // additionally alerts the sales queue (in-app + Telegram) when the
+    // router landed on a "ready to buy" or "wants a human" specialist, so
+    // an advisor can take over. `escalateConversation` marks the thread
+    // once and never throws.
+    const slug = route.agent?.slug
+    if (slug === 'confirmar_pedido' || slug === 'soporte_humano') {
+      await escalateConversation({
+        db,
+        accountId,
+        conversationId,
+        contactId,
+        reason: slug === 'confirmar_pedido' ? 'compra' : 'soporte_humano',
+        lastCustomerMessage: latestUserMessage(messages),
+      })
+    }
   } catch (err) {
     console.error('[ai auto-reply] dispatch failed:', err)
   }
