@@ -1503,6 +1503,7 @@
       "fields": "Fields & tags",
       "deals": "Deals & currency",
       "members": "Team members",
+      "telegram": "Telegram",
       "api": "API keys"
     },
     "groups": {
@@ -1691,6 +1692,32 @@
       "reindex": "Reindex",
       "reindexTooltip": "Re-embed all documents (e.g. after adding an embeddings key)",
       "loading": "Loading…"
+    },
+    "telegram": {
+      "title": "Telegram alerts",
+      "description": "Get a ping in a Telegram group whenever a customer wants to buy or asks for an advisor, so your team can jump in instantly.",
+      "loading": "Loading…",
+      "step1": "Open @BotFather in Telegram and send /newbot to create your bot; copy the TOKEN it gives you.",
+      "step2": "Create a Telegram group (e.g. \"Sales\") and add your bot to it.",
+      "step3": "Temporarily add @getidsbot to the group to see the chat ID (a negative number).",
+      "step4": "Paste the token and chat ID below and save — we'll send a test message.",
+      "tokenLabel": "Bot token",
+      "tokenStored": "•••••••• (stored)",
+      "tokenPlaceholder": "e.g. 7712345678:AAH...xYz",
+      "tokenHint": "The token is stored and hidden. Re-enter it only to change it.",
+      "chatIdLabel": "Chat / group ID",
+      "chatIdPlaceholder": "e.g. -1001234567890",
+      "chatIdHint": "The ID of the group where alerts will arrive (usually a negative number).",
+      "enabledLabel": "Send Telegram alerts",
+      "saveTest": "Save & send test",
+      "remove": "Remove",
+      "adminOnly": "Only admins can configure Telegram.",
+      "chatIdRequired": "Enter the chat ID.",
+      "tokenRequired": "Enter the bot token.",
+      "saveSuccess": "Telegram connected. Check the test message in your group.",
+      "saveFailed": "Failed to save.",
+      "removeSuccess": "Telegram integration removed.",
+      "removeFailed": "Failed to remove."
     }
   }
 }

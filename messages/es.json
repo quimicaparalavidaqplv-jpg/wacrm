@@ -1503,6 +1503,7 @@
       "fields": "Campos y etiquetas",
       "deals": "Negocios y moneda",
       "members": "Miembros del equipo",
+      "telegram": "Telegram",
       "api": "Claves de API"
     },
     "groups": {
@@ -1691,6 +1692,32 @@
       "reindex": "Reindexar",
       "reindexTooltip": "Volver a generar embeddings de todos los documentos (p. ej. después de agregar una clave de embeddings)",
       "loading": "Cargando…"
+    },
+    "telegram": {
+      "title": "Alertas de Telegram",
+      "description": "Recibe un aviso en un grupo de Telegram cada vez que un cliente quiere comprar o pide un asesor, para que tu equipo lo atienda al instante.",
+      "loading": "Cargando…",
+      "step1": "Abre @BotFather en Telegram y envía /newbot para crear tu bot; copia el TOKEN que te da.",
+      "step2": "Crea un grupo de Telegram (p. ej. \"Ventas\") y agrega tu bot al grupo.",
+      "step3": "Agrega temporalmente @getidsbot al grupo para ver el ID del chat (un número negativo).",
+      "step4": "Pega el token y el ID del chat aquí abajo y guarda: enviaremos un mensaje de prueba.",
+      "tokenLabel": "Token del bot",
+      "tokenStored": "•••••••• (guardado)",
+      "tokenPlaceholder": "Ej. 7712345678:AAH...xYz",
+      "tokenHint": "El token está guardado y oculto. Escríbelo de nuevo solo si quieres cambiarlo.",
+      "chatIdLabel": "ID del chat / grupo",
+      "chatIdPlaceholder": "Ej. -1001234567890",
+      "chatIdHint": "El identificador del grupo donde llegarán las alertas (suele ser un número negativo).",
+      "enabledLabel": "Enviar alertas por Telegram",
+      "saveTest": "Guardar y enviar prueba",
+      "remove": "Quitar",
+      "adminOnly": "Solo los administradores pueden configurar Telegram.",
+      "chatIdRequired": "Ingresa el ID del chat.",
+      "tokenRequired": "Ingresa el token del bot.",
+      "saveSuccess": "Telegram conectado. Revisa el mensaje de prueba en tu grupo.",
+      "saveFailed": "No se pudo guardar.",
+      "removeSuccess": "Integración de Telegram eliminada.",
+      "removeFailed": "No se pudo eliminar."
     }
   }
 }

@@ -5,6 +5,7 @@ import {
   LayoutGrid,
   Palette,
   PlugZap,
+  Send,
   Shield,
   Tags,
   User,
@@ -32,6 +33,7 @@ export const SETTINGS_SECTIONS = [
   'fields',
   'deals',
   'members',
+  'telegram',
   'api',
 ] as const;
 
@@ -58,6 +60,7 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
   fields: { id: 'fields', label: 'Fields & tags', icon: Tags, group: 'workspace' },
   deals: { id: 'deals', label: 'Deals & currency', icon: Coins, group: 'workspace' },
   members: { id: 'members', label: 'Team members', icon: UsersRound, group: 'workspace' },
+  telegram: { id: 'telegram', label: 'Telegram', icon: Send, group: 'workspace' },
   api: { id: 'api', label: 'API keys', icon: KeyRound, group: 'workspace' },
 };
 

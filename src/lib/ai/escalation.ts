@@ -97,7 +97,11 @@ export async function escalateConversation(args: {
     // 2. Telegram alert (optional — no-op when unconfigured).
     const tg = await loadTelegramConfig(db, accountId)
     if (tg) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      // Deep link into the inbox. Falls back to the current Vercel domain
+      // so the link works without a NEXT_PUBLIC_APP_URL env var set; update
+      // the fallback when a custom domain is added.
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL || 'https://wacrm-kappa-ruby.vercel.app'
       const text =
         `<b>${escapeTelegramHtml(label)}</b>\n` +
         `👤 ${escapeTelegramHtml(who)}\n` +
