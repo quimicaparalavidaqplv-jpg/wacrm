@@ -22,6 +22,7 @@
     "notifications": "Notificaciones",
     "contacts": "Contactos",
     "pipelines": "Embudos",
+    "conversion": "Conversión",
     "broadcasts": "Difusiones",
     "automations": "Automatizaciones",
     "flows": "Flujos",
@@ -61,6 +62,23 @@
   },
   "ModeToggle": {
     "switchMode": "Cambiar a modo {mode}"
+  },
+  "Conversion": {
+    "title": "Conversión",
+    "subtitle": "Cómo terminan las conversaciones: cuántas resuelve el bot, cuántas escalan a ventas y cuántas se cierran.",
+    "range7d": "7 días",
+    "range30d": "30 días",
+    "range90d": "90 días",
+    "rangeAll": "Todo",
+    "conversionRate": "Tasa de conversión",
+    "conversionRateHint": "{won} de {total} conversaciones que llegaron a ventas se cerraron.",
+    "won": "Venta cerrada",
+    "escalated": "Escaló a ventas",
+    "lost": "Perdida / sin respuesta",
+    "bot": "Quedó en el bot",
+    "totalHint": "{total} conversaciones en total en este período.",
+    "loading": "Cargando datos de conversión…",
+    "loadError": "No se pudieron cargar los datos de conversión."
   },
   "Pending": {
     "title": "Pendientes",
@@ -292,6 +310,17 @@
       "resumed": "IA reanudada.",
       "updateError": "No se pudo actualizar el asistente de IA.",
       "networkError": "No se pudo conectar con el servidor."
+    },
+    "conversion": {
+      "title": "Resultado de la venta",
+      "mark": "Marcar",
+      "won": "Venta cerrada",
+      "lost": "Perdida",
+      "clear": "Quitar marca",
+      "markedWon": "Marcada como venta cerrada",
+      "markedLost": "Marcada como perdida",
+      "cleared": "Marca quitada",
+      "error": "No se pudo actualizar"
     }
   },
   "Contacts": {

@@ -49,6 +49,7 @@ import {
 import { deleteAccountMedia } from "@/lib/storage/upload-media";
 import { TemplatePicker } from "./template-picker";
 import { AiThreadBanner } from "./ai-thread-banner";
+import { ConversionControl } from "./conversion-control";
 import { buildReplyPreview } from "./reply-quote";
 import { toast } from "sonner";
 
@@ -964,6 +965,18 @@ export function MessageThread({
               />
             </button>
           )}
+
+          {/* Conversion outcome — mark the sale won/lost from the chat
+              (Fase 2). `conversion_outcome` is a column added in migration
+              041; the inbox's Conversation type doesn't declare it yet, so
+              read it through a narrow cast rather than widening the type. */}
+          <ConversionControl
+            conversationId={conversation.id}
+            initialOutcome={
+              (conversation as { conversion_outcome?: "won" | "lost" | null })
+                .conversion_outcome ?? null
+            }
+          />
 
           {/* Status dropdown */}
           <DropdownMenu>

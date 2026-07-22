@@ -22,6 +22,7 @@
     "notifications": "Notifications",
     "contacts": "Contacts",
     "pipelines": "Pipelines",
+    "conversion": "Conversion",
     "broadcasts": "Broadcasts",
     "automations": "Automations",
     "flows": "Flows",
@@ -61,6 +62,23 @@
   },
   "ModeToggle": {
     "switchMode": "Switch to {mode} mode"
+  },
+  "Conversion": {
+    "title": "Conversion",
+    "subtitle": "How conversations end: how many the bot resolves, how many escalate to sales, and how many close.",
+    "range7d": "7 days",
+    "range30d": "30 days",
+    "range90d": "90 days",
+    "rangeAll": "All",
+    "conversionRate": "Conversion rate",
+    "conversionRateHint": "{won} of {total} conversations that reached sales were closed.",
+    "won": "Sale closed",
+    "escalated": "Escalated to sales",
+    "lost": "Lost / unanswered",
+    "bot": "Stayed in bot",
+    "totalHint": "{total} conversations total in this period.",
+    "loading": "Loading conversion data…",
+    "loadError": "Couldn't load conversion data."
   },
   "Pending": {
     "title": "Pending",
@@ -292,6 +310,17 @@
       "resumed": "AI resumed.",
       "updateError": "Couldn’t update the AI assistant.",
       "networkError": "Couldn’t reach the server."
+    },
+    "conversion": {
+      "title": "Sale outcome",
+      "mark": "Mark",
+      "won": "Sale closed",
+      "lost": "Lost",
+      "clear": "Clear mark",
+      "markedWon": "Marked as sale closed",
+      "markedLost": "Marked as lost",
+      "cleared": "Mark cleared",
+      "error": "Couldn't update"
     }
   },
   "Contacts": {
