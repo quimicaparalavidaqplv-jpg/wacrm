@@ -31,6 +31,13 @@ const REASON_LABEL: Record<EscalationReason, string> = {
  *  chat. Viewers are read-only, so they're excluded. */
 const SALES_QUEUE_ROLES = ['owner', 'admin', 'agent'] as const
 
+/**
+ * Re-alert throttle. A conversation that escalated within this window
+ * won't alert again, so a chat that keeps hitting "confirmar_pedido"
+ * doesn't spam the team. Past the window (the customer is still waiting,
+ * or escalates afresh later) it re-alerts — a useful nudge. */
+const RE_ALERT_AFTER_MS = 15 * 60 * 1000
+
 export async function escalateConversation(args: {
   db: SupabaseClient
   accountId: string
@@ -49,8 +56,12 @@ export async function escalateConversation(args: {
   } = args
 
   try {
-    // Claim the escalation: only the first one flips escalated_at from
-    // NULL, so a thread that keeps hitting "confirmar_pedido" alerts once.
+    // Claim the escalation. Fires when the thread never escalated OR its
+    // last escalation is older than the re-alert window, so repeated
+    // classifications in a short burst alert once, but a customer left
+    // waiting (or escalating again later) re-alerts. The conditional
+    // UPDATE is the concurrency guard — two inbounds racing can't both win.
+    const cutoffIso = new Date(Date.now() - RE_ALERT_AFTER_MS).toISOString()
     const { data: claimed } = await db
       .from('conversations')
       .update({
@@ -58,10 +69,10 @@ export async function escalateConversation(args: {
         escalation_reason: reason,
       })
       .eq('id', conversationId)
-      .is('escalated_at', null)
+      .or(`escalated_at.is.null,escalated_at.lt.${cutoffIso}`)
       .select('id')
       .maybeSingle()
-    if (!claimed) return // already escalated — don't spam the team
+    if (!claimed) return // escalated too recently — don't spam the team
 
     const label = REASON_LABEL[reason]
 
