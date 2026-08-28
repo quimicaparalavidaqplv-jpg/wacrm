@@ -9,12 +9,17 @@ const h = vi.hoisted(() => ({
   generateReply: vi.fn(),
   engineSendText: vi.fn(),
   loadActiveAgents: vi.fn(),
+  escalateConversation: vi.fn(),
   state: {
     conv: null as Record<string, unknown> | null,
     autoResponders: [] as { id: string }[],
     claim: true as boolean,
     updatePayload: null as Record<string, unknown> | null,
     rpcCalls: [] as { name: string; args: unknown }[],
+    /** Successive answers for the burst guard's `latestInboundAt` reads.
+     *  One entry → every read sees the same newest inbound (the normal
+     *  case). Two → a newer message landed mid-generation. */
+    inboundAts: [] as string[],
   },
 }))
 
@@ -35,6 +40,11 @@ vi.mock('./agents', async (importOriginal) => ({
   loadActiveAgents: h.loadActiveAgents,
 }))
 vi.mock('@/lib/flows/meta-send', () => ({ engineSendText: h.engineSendText }))
+// Escalation is its own unit (see escalation.ts) and talks to Telegram +
+// the notifications table. Stubbing it keeps these tests focused on the
+// dispatch decision, and stops its own `conversations` UPDATE from
+// clobbering the handoff payload these tests assert on.
+vi.mock('./escalation', () => ({ escalateConversation: h.escalateConversation }))
 vi.mock('./admin-client', () => ({
   supabaseAdmin: () => ({
     from: (table: string) => {
@@ -46,6 +56,28 @@ vi.mock('./admin-client', () => ({
           in: () => chain,
           limit: () =>
             Promise.resolve({ data: h.state.autoResponders, error: null }),
+        }
+        return chain
+      }
+      if (table === 'messages') {
+        // Burst guard: .select().eq().eq().order().limit().maybeSingle()
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          order: () => chain,
+          limit: () => chain,
+          maybeSingle: () => {
+            // Keep the last entry once the queue is down to one, so a
+            // single-value setup answers every read identically.
+            const at =
+              h.state.inboundAts.length > 1
+                ? h.state.inboundAts.shift()
+                : h.state.inboundAts[0]
+            return Promise.resolve({
+              data: at ? { created_at: at } : null,
+              error: null,
+            })
+          },
         }
         return chain
       }
@@ -100,8 +132,13 @@ beforeEach(() => {
     ai_autoreply_disabled: false,
     ai_reply_count: 0,
     ai_active_agent_id: null,
+    ai_context_reset_at: null,
   }
+  // Single entry → the newest inbound never changes mid-run, so the
+  // burst guard is a no-op unless a test says otherwise.
+  h.state.inboundAts = ['2026-08-27T10:44:12.000Z']
   h.state.autoResponders = []
+  h.escalateConversation.mockReset()
   h.loadActiveAgents.mockResolvedValue([])
   h.state.claim = true
   h.state.updatePayload = null
@@ -321,5 +358,69 @@ describe('dispatchInboundToAiReply — agent routing', () => {
     expect(h.state.updatePayload).toMatchObject({
       ai_autoreply_disabled: true,
     })
+  })
+})
+
+describe('dispatchInboundToAiReply — burst guard', () => {
+  it('replies when its inbound is still the newest', async () => {
+    h.state.inboundAts = ['2026-08-27T10:44:12.000Z']
+    await dispatchInboundToAiReply(ARGS)
+    expect(h.engineSendText).toHaveBeenCalledTimes(1)
+  })
+
+  it('stands down when a newer inbound lands mid-generation', async () => {
+    // Meta delivers one webhook per message: this run started on the
+    // 10:44:12 message, and 10:44:16 arrived while the model was still
+    // generating. The later run answers instead — with both messages in
+    // context — so this one must not send a second, near-identical reply.
+    h.state.inboundAts = ['2026-08-27T10:44:12.000Z', '2026-08-27T10:44:16.000Z']
+    await dispatchInboundToAiReply(ARGS)
+    expect(h.engineSendText).not.toHaveBeenCalled()
+  })
+
+  it('does not burn a reply-cap slot when it stands down', async () => {
+    h.state.inboundAts = ['2026-08-27T10:44:12.000Z', '2026-08-27T10:44:16.000Z']
+    await dispatchInboundToAiReply(ARGS)
+    expect(h.state.rpcCalls).toHaveLength(0)
+  })
+
+  it('does not hand off on a partial message when superseded', async () => {
+    // Without the guard, a customer splitting one thought across two
+    // messages could get a handoff decided on the first half alone.
+    h.generateReply.mockResolvedValue({ text: '', handoff: true })
+    h.state.inboundAts = ['2026-08-27T10:44:12.000Z', '2026-08-27T10:44:16.000Z']
+    await dispatchInboundToAiReply(ARGS)
+    expect(h.escalateConversation).not.toHaveBeenCalled()
+    expect(h.state.updatePayload).toBeNull()
+  })
+})
+
+describe('dispatchInboundToAiReply — memory watermark', () => {
+  it('passes no watermark when the thread was never reset', async () => {
+    await dispatchInboundToAiReply(ARGS)
+    expect(h.buildConversationContext).toHaveBeenCalledWith(
+      expect.anything(),
+      'conv-1',
+      undefined,
+      null,
+    )
+  })
+
+  it('passes ai_context_reset_at so the bot forgets earlier turns', async () => {
+    const resetAt = '2026-08-27T18:00:00.000Z'
+    h.state.conv = {
+      assigned_agent_id: null,
+      ai_autoreply_disabled: false,
+      ai_reply_count: 0,
+      ai_active_agent_id: null,
+      ai_context_reset_at: resetAt,
+    }
+    await dispatchInboundToAiReply(ARGS)
+    expect(h.buildConversationContext).toHaveBeenCalledWith(
+      expect.anything(),
+      'conv-1',
+      undefined,
+      resetAt,
+    )
   })
 })

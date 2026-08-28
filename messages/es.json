@@ -309,7 +309,11 @@
       "tookOver": "Has tomado el control de este chat.",
       "resumed": "IA reanudada.",
       "updateError": "No se pudo actualizar el asistente de IA.",
-      "networkError": "No se pudo conectar con el servidor."
+      "networkError": "No se pudo conectar con el servidor.",
+      "reset": "Reiniciar",
+      "resetConfirm": "¿Reiniciar esta conversación para la IA?\n\nEl asistente olvidará todo lo hablado hasta ahora y volverá a empezar como si fuera un cliente nuevo.\n\nLos mensajes NO se borran: seguirás viendo el historial completo en la bandeja.",
+      "resetDone": "Conversación reiniciada. La IA empieza de cero.",
+      "resetError": "No se pudo reiniciar la conversación."
     },
     "conversion": {
       "title": "Resultado de la venta",
@@ -407,9 +411,9 @@
         "notes": "Notas",
         "custom": "Campos personalizados",
         "deals": "Negocios",
-      "noTags": "Sin etiquetas",
-      "noDeals": "Sin negocios",
-      "addNotePlaceholder": "Agregar una nota..."
+        "noTags": "Sin etiquetas",
+        "noDeals": "Sin negocios",
+        "addNotePlaceholder": "Agregar una nota..."
       },
       "actions": {
         "edit": "Editar",
@@ -1379,13 +1383,11 @@
       "deleteLocallyAria": "Eliminar plantilla localmente",
       "deleteMetaLocallyTitle": "Eliminar de Meta y localmente",
       "deleteLocallyTitle": "Eliminar localmente",
-
       "dialogEditTitle": "Editar plantilla de mensaje",
       "dialogNewTitle": "Nueva plantilla de mensaje",
       "dialogEditDesc": "Guarda tus cambios para reenviar a Meta. El estado volverá a PENDIENTE durante la revisión.",
       "dialogNewDesc": "Crea una plantilla y envíala a Meta para su aprobación. Una vez aprobada, podrás usarla en difusiones y en la bandeja de entrada.",
       "authWarning": "Las plantillas de AUTENTICACIÓN tienen un cuerpo fijo + un botón de OTP con una forma que necesita un editor distinto. Por ahora créalas en el Administrador de WhatsApp de Meta y usa <bold>Sincronizar desde Meta</bold> para traerlas.",
-
       "templateName": "Nombre de la plantilla",
       "namePlaceholder": "p. ej. confirmacion_pedido",
       "nameFixed": "El nombre queda fijo una vez que la plantilla existe en Meta — crea una nueva plantilla para cambiarlo.",
@@ -1394,7 +1396,6 @@
       "language": "Idioma",
       "langFixed": "El idioma queda fijo una vez que la plantilla existe en Meta.",
       "langHint": "Debe coincidir con el código exacto en Meta — <code>en_US</code> y <code>en</code> son distintos.",
-
       "header": "Encabezado",
       "headerNone": "Ninguno",
       "headerText": "Texto",
@@ -1404,7 +1405,6 @@
       "headerTextPlaceholder": "Texto del encabezado (máx. 60 caracteres, {{1}} opcional)",
       "headerSampleAria": "Valor de ejemplo para la variable del encabezado",
       "headerSamplePlaceholder": "Valor de ejemplo para {{1}} (requerido para la revisión de Meta)",
-
       "uploadImage": "Subir imagen",
       "uploadHint": "JPEG o PNG, ≤5 MB",
       "mediaUrlPlaceholder": "https://… (o pega un enlace público de {format})",
@@ -1412,17 +1412,14 @@
       "mediaHint": "Debe ser un enlace HTTPS de acceso público. Meta lo obtiene una vez durante la revisión, así que debe permanecer activo unas 24 horas.",
       "videoHint": " Recomendado: MP4 / 3GPP, ≤16 MB, ≤60 segundos.",
       "documentHint": " Recomendado: PDF, ≤100 MB.",
-
       "bodyText": "Texto del cuerpo",
       "bodyPlaceholder": "Hola {{1}}, tu pedido {{2}} está confirmado.",
       "bodyHint": "Usa {{1}}, {{2}} para variables (deben ser contiguas empezando en {{1}}).",
       "sampleValues": "Valores de ejemplo (Meta los usa para revisar tu plantilla)",
       "sampleAria": "Valor de ejemplo para la variable del cuerpo {var}",
       "samplePlaceholder": "Ejemplo para {var}",
-
       "footer": "Pie (opcional)",
       "footerPlaceholder": "Texto de pie opcional (máx. 60 caracteres)",
-
       "buttons": "Botones (opcional)",
       "addButton": "Agregar botón",
       "buttonsLimit": "Hasta {max} botones. Los botones QUICK_REPLY deben ir antes que los de URL / teléfono / copiar código.",
@@ -1435,19 +1432,16 @@
       "urlSamplePlaceholder": "Valor de ejemplo para {{1}} (requerido cuando la URL tiene una variable)",
       "phonePlaceholder": "+15551234567",
       "codePlaceholder": "Código de ejemplo (p. ej. VERANO20)",
-
       "cancel": "Cancelar",
       "saving": "Guardando…",
       "submitting": "Enviando…",
       "saveResubmit": "Guardar y reenviar",
       "submitApproval": "Enviar para aprobación",
-
       "deleteDialogTitle": "¿Eliminar plantilla?",
       "deleteMetaDesc": "\"{name}\" se eliminará de Meta y de QPLV CRM. Las difusiones activas que usen esta plantilla empezarán a fallar en su próximo envío. Esto no se puede deshacer.",
       "deleteLocalDesc": "\"{name}\" se eliminará de QPLV CRM. Nunca se envió a Meta, así que no se necesita limpieza remota.",
       "deleting": "Eliminando…",
       "delete": "Eliminar",
-
       "toastLoadFailed": "No se pudieron cargar las plantillas",
       "toastSubmitFailed": "No se pudo enviar",
       "toastSubmitEditSuccess": "Edición enviada — Meta normalmente revisa en 24 horas.",
@@ -1587,7 +1581,6 @@
       "profileSaved": "Perfil guardado",
       "emailChangeFailed": "Error al cambiar el correo: {message}",
       "profileSavedEmailCheck": "Perfil guardado — revisa tu correo para confirmar el cambio de dirección",
-
       "passwordTitle": "Contraseña",
       "passwordDesc": "Usa al menos {min} caracteres. Seguirás con la sesión iniciada en este dispositivo después de cambiarla.",
       "currentPassword": "Contraseña actual",
@@ -1601,7 +1594,6 @@
       "currentPasswordIncorrect": "La contraseña actual es incorrecta",
       "passwordUpdateFailed": "Error al actualizar la contraseña: {message}",
       "passwordUpdated": "Contraseña actualizada",
-
       "sessionsTitle": "Sesiones activas",
       "sessionsDesc": "Cierra sesión en todos los dispositivos donde estés conectado — incluido este. Útil si perdiste una laptop o compartiste tu contraseña.",
       "signOutAll": "Cerrar sesión en todos los dispositivos",

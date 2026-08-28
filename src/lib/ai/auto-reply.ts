@@ -73,7 +73,7 @@ export async function dispatchInboundToAiReply(
     const { data: conv, error: convErr } = await db
       .from('conversations')
       .select(
-        'assigned_agent_id, ai_autoreply_disabled, ai_reply_count, ai_active_agent_id',
+        'assigned_agent_id, ai_autoreply_disabled, ai_reply_count, ai_active_agent_id, ai_context_reset_at',
       )
       .eq('id', conversationId)
       .maybeSingle()
@@ -84,8 +84,31 @@ export async function dispatchInboundToAiReply(
     // below (this read can race a concurrent inbound).
     if (conv.ai_reply_count >= config.autoReplyMaxPerConversation) return
 
-    const messages = await buildConversationContext(db, conversationId)
+    const messages = await buildConversationContext(
+      db,
+      conversationId,
+      undefined,
+      conv.ai_context_reset_at ?? null,
+    )
     if (messages.length === 0) return
+
+    // Burst guard, part 1 of 2 — remember which inbound we're answering.
+    //
+    // Meta delivers ONE webhook per message, and each one dispatches its
+    // own auto-reply. A customer who types "Buenos días" then "Gusto en
+    // saludarlos" four seconds later triggers two independent runs that
+    // never see each other, and both answer — two near-identical replies
+    // in the same second, two reply-cap slots burned, double the tokens.
+    // (Observed in production on 27 Aug 2026 at 10:44:23.)
+    //
+    // We can't lock across serverless invocations, but we don't need to:
+    // generation takes seconds, so the earlier run is still working when
+    // the later message lands. Recording the newest inbound now lets us
+    // re-check just before sending (part 2) and stand down if we've been
+    // superseded — the later run answers instead, and its context already
+    // includes both messages, so the customer gets ONE reply that covers
+    // everything they said.
+    const inboundAtBefore = await latestInboundAt(db, conversationId)
 
     // Account-wide throttle on the shared BYO key. The per-conversation
     // cap bounds one thread; this bounds a burst across many threads (a
@@ -159,6 +182,19 @@ export async function dispatchInboundToAiReply(
       usage,
       agentId: route.agent?.id ?? null,
     })
+
+    // Burst guard, part 2 of 2 — stand down if a newer inbound arrived
+    // while we were generating. Placed BEFORE the handoff branch and
+    // before the reply-slot claim so a superseded run costs nothing: no
+    // duplicate reply, no wasted cap slot, and no premature handoff
+    // decided on half the customer's message.
+    const inboundAtAfter = await latestInboundAt(db, conversationId)
+    if (inboundAtBefore && inboundAtAfter && inboundAtAfter !== inboundAtBefore) {
+      console.log(
+        `[ai auto-reply] superseded by a newer inbound on ${conversationId} — standing down`,
+      )
+      return
+    }
 
     // An account that configured specialists but whose router couldn't
     // land on one (no fallback marked, unrecognised answer, nothing
@@ -262,4 +298,36 @@ export async function dispatchInboundToAiReply(
   } catch (err) {
     console.error('[ai auto-reply] dispatch failed:', err)
   }
+}
+
+type AutoReplyDb = ReturnType<typeof supabaseAdmin>
+
+/**
+ * Timestamp of the newest customer message on a thread, or null when the
+ * thread has none (or the read fails).
+ *
+ * Used by the burst guard to tell "I'm answering the customer's latest
+ * message" from "another message landed while I was thinking". Read
+ * failures return null, which disables the guard for that run rather
+ * than silently dropping a reply — under uncertainty, answering once too
+ * often beats leaving the customer with nothing.
+ */
+async function latestInboundAt(
+  db: AutoReplyDb,
+  conversationId: string,
+): Promise<string | null> {
+  const { data, error } = await db
+    .from('messages')
+    .select('created_at')
+    .eq('conversation_id', conversationId)
+    .eq('sender_type', 'customer')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.warn('[ai auto-reply] burst-guard read failed:', error.message)
+    return null
+  }
+  return (data as { created_at: string } | null)?.created_at ?? null
 }

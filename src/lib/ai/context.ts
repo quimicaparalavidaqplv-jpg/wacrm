@@ -20,17 +20,29 @@ interface DbMessage {
  *
  * Ordered oldest-first (chronological) so the transcript reads
  * naturally and the most recent customer message lands last.
+ *
+ * `resetAt` (`conversations.ai_context_reset_at`, migration 042) is the
+ * bot's memory watermark: when set, only messages created strictly after
+ * it are fed to the model. This is what "Reiniciar conversación" uses to
+ * give the bot a clean slate on a thread whose history has gone stale —
+ * the transcript itself is never touched, so the inbox keeps showing the
+ * whole relationship to the humans working it.
  */
 export async function buildConversationContext(
   db: SupabaseClient,
   conversationId: string,
   limit: number = aiContextMessageLimit(),
+  resetAt?: string | null,
 ): Promise<ChatMessage[]> {
-  const { data, error } = await db
+  let query = db
     .from('messages')
     .select('sender_type, content_text')
     .eq('conversation_id', conversationId)
     .in('content_type', ['text', 'audio'])
+
+  if (resetAt) query = query.gt('created_at', resetAt)
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(limit)
 

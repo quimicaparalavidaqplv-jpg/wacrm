@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Sparkles, Hand, Undo2, Loader2 } from "lucide-react";
+import { Sparkles, Hand, Undo2, Loader2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -134,6 +134,39 @@ export function AiThreadBanner({
     [conversationId, currentUserId, onChange, t],
   );
 
+  /**
+   * "Reiniciar conversación" — clear the bot's memory of this thread.
+   *
+   * Threads here are eternal (one per contact, reopened forever), so a
+   * finished order or a botched test keeps feeding the model stale turns
+   * and keeps it pinned to the specialist that handled them. This sets
+   * the memory watermark and unpins the agent, so the next inbound is
+   * treated like a first contact. The transcript is NOT deleted — the
+   * inbox still shows everything, which is why the confirm can promise
+   * that plainly.
+   */
+  const resetContext = useCallback(async () => {
+    if (!window.confirm(t("resetConfirm"))) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/ai/reset-context/${conversationId}`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j?.error ?? t("resetError"));
+        return;
+      }
+      setPaused(false);
+      onChange?.({ ai_autoreply_disabled: false, assigned_agent_id: null });
+      toast.success(t("resetDone"));
+    } catch {
+      toast.error(t("networkError"));
+    } finally {
+      setBusy(false);
+    }
+  }, [conversationId, onChange, t]);
+
   // Account has no auto-reply → nothing to show. (Still loading → nothing.)
   if (!autoReplyOn) return null;
 
@@ -149,6 +182,9 @@ export function AiThreadBanner({
             </p>
           )}
         </div>
+        <BannerButton onClick={resetContext} busy={busy} icon={RotateCcw}>
+          {t("reset")}
+        </BannerButton>
         <BannerButton onClick={() => toggle(false)} busy={busy} icon={Undo2}>
           {t("resume")}
         </BannerButton>
@@ -168,6 +204,9 @@ export function AiThreadBanner({
           {t("activeText")}
         </span>
       </div>
+      <BannerButton onClick={resetContext} busy={busy} icon={RotateCcw}>
+        {t("reset")}
+      </BannerButton>
       <BannerButton onClick={() => toggle(true)} busy={busy} icon={Hand}>
         {t("takeOver")}
       </BannerButton>
