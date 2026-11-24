@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Sparkles, CheckCircle2, Trash2, Eye, EyeOff } from 'lucide-react';
+import { invalidateAiAccountStatus } from '@/lib/ai/account-status-cache';
 import { useAuth } from '@/hooks/use-auth';
 import { canEditSettings } from '@/lib/auth/roles';
 import { Button } from '@/components/ui/button';
@@ -193,6 +194,7 @@ export function AiConfig() {
       });
       const data = await res.json();
       if (res.ok) {
+        invalidateAiAccountStatus();
         toast.success(t('saveSuccess'));
         await fetchConfig();
       } else {
@@ -210,6 +212,7 @@ export function AiConfig() {
     try {
       const res = await fetch('/api/ai/config', { method: 'DELETE' });
       if (res.ok) {
+        invalidateAiAccountStatus();
         toast.success(t('removeSuccess'));
         setConfigured(false);
         setHasStoredKey(false);
