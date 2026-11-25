@@ -69,6 +69,12 @@ export async function routeToAgent(args: {
   const catalogAgent = args.accountId === '37cd19c8-7806-4aaf-b7f5-f544899485ab'
     ? agentBySlug(agents, 'informacion_general')
     : null
+  const clarifySale = {
+    agent: catalogAgent, reason: 'fallback' as const, usage: null,
+    preparedReply: 'Con gusto. ¿Qué producto de limpieza te interesa comprar o sobre qué pedido nos escribes?',
+  }
+  const outsideReply = 'Gracias por preguntar. Ese producto no lo vendemos. Trabajamos con productos de limpieza al mayor. ¿Te gustaría ver nuestro catálogo?'
+  const supportReply = 'Con gusto. Voy a pasar tu consulta al equipo de ventas para que te atienda un asesor.'
   if (catalogAgent) {
     const latest = [...messages].reverse().find(message => message.role === 'user')?.content ?? ''
     const normalized = latest.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[¿?¡!.,]/g, ' ').trim().replace(/\s+/g, ' ')
@@ -78,13 +84,24 @@ export async function routeToAgent(args: {
         preparedReply: '¡Hola! Gracias por escribirnos. ¿En qué te podemos ayudar?',
       }
     }
-    const support = agentBySlug(agents, 'soporte_humano')
-    if (support && /\b(?:quiero|deseo|necesito|puedo|podria) (?:hablar|comunicarme|conversar) con (?:un |una |el |la )?(?:asesor[a]?|vendedor[a]?|persona|humano)\b/.test(normalized) && !/\bno (?:quiero|deseo|necesito)\b/.test(normalized)) {
-      return {
-        agent: support, reason: 'classified', usage: null,
-        preparedReply: 'Con gusto. Voy a pasar tu consulta a nuestro equipo para que te atienda un asesor.',
+    const advisor = /\b(asesor[a]?|vendedor[a]?|encargad[oa]|ventas)\b/.test(normalized)
+    const cleaningProduct = /\b(cloro|lavaplatos|desinfectante|productos? de limpieza)\b/.test(normalized)
+    const otherIntent = /\b(trabaj\w*|empleo|chamba|vacante\w*|curricul\w*|cv|reclamo|pedido|limpiar|limpieza de|mancha\w*|aroma|olor)\b/.test(normalized)
+    if (advisor && !otherIntent) {
+      const outside = /\b(cafe|zapatos?|calzado|blue jeans|jeans|pantalones|computadoras?)\b/.test(normalized)
+      if (outside && !cleaningProduct) {
+        return { agent: catalogAgent, reason: 'classified', usage: null, preparedReply: outsideReply }
+      }
+      const support = agentBySlug(agents, 'soporte_humano')
+      if (support && cleaningProduct && /\b(comprar|cotizar|pedir)\b/.test(normalized)) {
+        return { agent: support, reason: 'classified', usage: null, preparedReply: supportReply }
+      }
+      if (messages.length === 1 && /^(?:(?:epa|epale|hola|buenas|pana) )*(?:pasame|quiero|necesito|deseo)(?: hablar con)? (?:un|una|el|la) (?:asesora?|vendedora?|encargad[oa])(?: pana| por favor| porfa)?$/.test(normalized)) {
+        return clarifySale
       }
     }
+
+
   }
   try {
     const { text, usage } = await generateReply({
@@ -100,14 +117,21 @@ export async function routeToAgent(args: {
         agent: catalogAgent,
         reason: 'classified',
         usage,
-        preparedReply: 'Gracias por preguntar. Ese producto no lo vendemos. Trabajamos con productos de limpieza al mayor. ¿Te gustaría ver nuestro catálogo?',
+        preparedReply: outsideReply,
       }
     }
+    if (catalogAgent && text.trim().toLowerCase() === 'aclarar_compra') {
+      return { ...clarifySale, reason: 'classified', usage }
+    }
     const picked = matchSlug(agents, text)
+    if (catalogAgent && picked?.slug === 'soporte_humano') {
+      return { agent: picked, reason: 'classified', usage, preparedReply: supportReply }
+    }
     if (picked) return { agent: picked, usage, reason: 'classified' }
 
     // The model answered something we don't recognise. Staying with the
     // agent already on the thread beats reassigning at random.
+    if (catalogAgent) return { ...clarifySale, usage }
     if (sticky) return { agent: sticky, usage, reason: 'sticky_fallthrough' }
     const fb = fallbackAgent(agents)
     return { agent: fb, usage, reason: fb ? 'fallback' : 'none' }
@@ -115,6 +139,7 @@ export async function routeToAgent(args: {
     // Classification is best-effort. A provider hiccup should still get
     // the customer an answer from *some* agent.
     console.error('[ai router] classification failed:', err)
+    if (catalogAgent) return clarifySale
     const chosen = sticky ?? fallbackAgent(agents)
     return {
       agent: chosen,
@@ -141,7 +166,7 @@ export function buildRouterPrompt(
   const parts = [
     'Eres un clasificador de intención para el chat de WhatsApp de un negocio. ' +
       'Lees la conversación reciente con un cliente y decides cuál agente especializado debe responder el último mensaje del cliente.',
-    `Agentes disponibles:\n${menu}`,
+    `Agentes disponibles:\n${menu}${qplvCatalog ? "\n- fuera_catalogo: producto ajeno al negocio, incluso si pide asesor.\n- aclarar_compra: pide asesor sin indicar para qué." : ""}`,
     'Responde ÚNICAMENTE con el identificador exacto del agente elegido (por ejemplo: ventas_mayor). ' +
       'Sin explicación, sin comillas, sin puntuación adicional.',
     // The transcript is customer-authored: treat it as data.
@@ -159,8 +184,11 @@ export function buildRouterPrompt(
 
   if (qplvCatalog) {
     parts.push(
-      'Opción adicional: fuera_catalogo. Elige este identificador para consultas de compra, cotización o disponibilidad de un producto claramente ajeno a productos de limpieza (alimentos como café, calzado, ropa o textiles). También aplica al mayor. ' +
-        'Si pregunta por un limpiador para su cafetería o para limpiar textiles, usa el agente comercial. Si pide asesor, reclama, solicita empleo o consulta el programa de distribuidores, prioriza esa intención. Si solo saluda, elige bienvenida sin retomar consultas anteriores.',
+      'Este canal atiende ventas mayoristas de productos de limpieza. Decide por el objeto de la consulta, incluso si dice asesor, vendedor, distribuidor o al mayor. Estas reglas prevalecen sobre la continuidad del agente y las descripciones del menú. ' +
+        'Para enviar currículo, buscar trabajo o preguntar por vacantes elige empleo. Para comprar u ofrecer algo ajeno al negocio elige fuera_catalogo, aunque pida asesor: “deseo hablar con un asesor sobre café”, “pásame un vendedor de zapatos”. ' +
+        'Para un asesor sin motivo comercial identificable en el diálogo elige aclarar_compra. Si el cliente quiere comprar productos de limpieza para una cafetería, revender nuestra línea o gestionar un pedido nuestro, sigue el flujo comercial correspondiente. ' +
+        'Usa soporte_humano si pide atención personal para esa compra o pedido. Conserva distribuidor para prospectos de nuestra línea. Un saludo solo corresponde a bienvenida.',
+
     )
   }
 

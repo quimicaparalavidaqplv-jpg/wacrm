@@ -107,6 +107,24 @@ describe('routeToAgent', () => {
 
   const messages = [{ role: 'user' as const, content: 'quiero 10 cajas' }]
 
+  it.each([
+    ['Deseo hablar con un asesor sobre café', 'informacion_general', 'no lo vendemos'],
+    ['Buenas, tienen blue jeans al mayor? Me pasas al encargado?', 'informacion_general', 'no lo vendemos'],
+    ['Pásame un vendedor, pana', 'informacion_general', 'te interesa comprar'],
+    ['Quiero hablar con ventas para comprar cloro para mi cafetería', 'soporte_humano', 'equipo de ventas'],
+  ])('qualifies QPLV sales inquiries: %s', async (content, slug, answer) => {
+    const result = await routeToAgent({
+      accountId: '37cd19c8-7806-4aaf-b7f5-f544899485ab',
+      config: CONFIG,
+      agents: [agent({ slug: 'informacion_general' }), agent({ slug: 'soporte_humano' })],
+      messages: [{ role: 'user', content }],
+      stickyAgentId: null,
+    })
+    expect(result.agent?.slug).toBe(slug)
+    expect(result.preparedReply).toContain(answer)
+    expect(mockedGenerate).not.toHaveBeenCalled()
+  })
+
   it('returns null when the account has no agents', async () => {
     const result = await routeToAgent({
       config: CONFIG,
