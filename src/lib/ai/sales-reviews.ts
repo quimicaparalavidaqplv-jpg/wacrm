@@ -16,11 +16,11 @@ export const reviews = [
     guidance: 'Distingue reventa mayorista de distribución autorizada. Explica únicamente requisitos documentados y conserva la atención del vendedor para distribuidores.',
   },
   {
-    id: 'despacho-v1',
-    title: 'Verificar cobertura antes de ofrecer despacho',
+    id: 'despacho-v2',
+    title: 'Canalizar retiro, despacho y flete con ventas',
     questions: ['¿Me lo arriman hasta mi negocio?', '¿Hacen despacho para mi zona?', '¿El flete va por cuenta de ustedes?'],
     search: 'despacho entrega cobertura transporte flete condiciones pedidos',
-    guidance: 'Aclara la zona si falta. Confirma cobertura, flete o plazos únicamente si aparecen en la base para ese destino y tipo de compra.',
+    guidance: 'Pasa las consultas de retiro, despacho y flete al vendedor, quien confirma las condiciones de cada pedido.',
   },
 ] as const
 
@@ -35,5 +35,5 @@ export function matchReview(question: string) {
   return reviews.find(r => r.questions.some(q => normalizeQuestion(q) === normalized))
 }
 
-export const commercialPolicy = 'En consultas de precio de QPLV usa la base comercial vigente. Distingue mayoristas y distribuidores. Para cotizar confirma producto, cantidad y canal, y verifica el mínimo aplicable. Si faltan datos, pregúntalos. Si falta respaldo documental, no indiques montos, descuentos ni mínimos. Pagar de una no demuestra elegibilidad para un descuento.'
+export const commercialPolicy = 'En consultas de precio de QPLV usa la base comercial vigente. Distingue mayoristas y distribuidores. Para cotizar confirma producto, cantidad y canal, y verifica el mínimo aplicable. Si faltan datos, pregúntalos. Si falta respaldo documental, no indiques montos, descuentos ni mínimos. Pagar de una no demuestra elegibilidad para un descuento. Para las cajas de botellas explica el mínimo mayorista de 4 cajas y las 12 unidades iguales en cada caja. Se pueden combinar cajas completas, cada una de un solo producto y aroma. Para ambos canales, retiro, entrega y flete los confirma el vendedor: deriva la consulta y evita ofrecer bonificaciones, direcciones de entrega o condiciones logísticas.'
 

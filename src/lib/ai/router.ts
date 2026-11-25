@@ -1,3 +1,4 @@
+import { boxExplanation, sellerLogistics } from './qplv-sales-text'
 import { matchReview } from './sales-reviews'
 import type { AiAgent } from './agents'
 import { agentBySlug, fallbackAgent } from './agents'
@@ -84,6 +85,15 @@ export async function routeToAgent(args: {
         agent: fallbackAgent(agents) ?? catalogAgent, reason: 'classified', usage: null,
         preparedReply: '¡Hola! Gracias por escribirnos. ¿En qué te podemos ayudar?',
       }
+    }
+    if (/^(?:(?:hola|buenas) )?(?:me venden|venden|puedo comprar|puedo llevar|quiero|quisiera) (?:una|1) (?:sola )?(?:caja|cajita)(?: para probar)?$/.test(normalized)) {
+      return { agent: catalogAgent, reason: 'classified', usage: null, preparedReply: boxExplanation }
+    }
+    const logistics = /\b(?:flete|domicilio fiscal|retiro en|retirar en|retiro por|busco en el almacen|despacho a|despacho para|arriman hasta)\b/.test(normalized)
+    if (logistics && !/\b(?:empleo|curriculo|cafe|zapatos|jeans)\b/.test(normalized)) {
+      const seller = agentBySlug(agents, 'soporte_humano')
+      if (seller) return { agent: seller, reason: 'classified', usage: null,
+        preparedReply: sellerLogistics + ' Te paso con ventas para que lo revisen contigo.' }
     }
     const asksBoxPrice = /\b(caja|cajita)\b/.test(normalized) && /\b(cuanto|cuesta|precio|sale|dejas)\b/.test(normalized)
     const knownBox = /\b(cloro|lavaplatos|desinfectante)\b/.test(normalized) || matchReview(latest)?.id === 'pedido-minimo-v1'

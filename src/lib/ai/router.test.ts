@@ -111,6 +111,9 @@ describe('routeToAgent', () => {
     ['Deseo hablar con un asesor sobre café', 'informacion_general', 'no lo vendemos'],
     ['Buenas, tienen blue jeans al mayor? Me pasas al encargado?', 'informacion_general', 'no lo vendemos'],
     ['¿En cuánto me dejas la caja si pago de una?', 'informacion_general', 'mínimo de compra'],
+    ['¿Me venden una cajita para probar?', 'informacion_general', '12 unidades del mismo producto y del mismo aroma'],
+    ['¿Si retiro en almacén me dan descuento?', 'soporte_humano', 'Un vendedor confirma'],
+    ['¿El flete va por cuenta de ustedes?', 'soporte_humano', 'Un vendedor confirma'],
     ['Pásame un vendedor, pana', 'informacion_general', 'te interesa comprar'],
     ['Quiero hablar con ventas para comprar cloro para mi cafetería', 'soporte_humano', 'equipo de ventas'],
   ])('qualifies QPLV sales inquiries: %s', async (content, slug, answer) => {

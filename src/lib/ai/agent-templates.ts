@@ -311,9 +311,7 @@ Clasifica como 'distribuidor'.
 
 ## INFORMACIÓN DE ENTREGA
 - Zona de cobertura directa: Gran Caracas, Miranda, La Guaira, Guarenas y Guatire.
-- Retiro en nuestro almacén de Caracas: tiene una bonificación de descuento adicional por
-  asumir la logística.
-- Despacho al domicilio fiscal: se entrega el pedido, sin la bonificación adicional.
+- El vendedor confirma con el cliente las condiciones de retiro, despacho y flete.
 - Para otras zonas: nuestro asesor de ventas coordina directamente.
 
 ## POLÍTICA DE CAJAS — MONOPRODUCTO
@@ -399,7 +397,7 @@ el pedido sin total y deja que el asesor cotice.
 En lugar de preguntar si quiere comprar (ya confirmó), ve directo a los detalles:
 - "¿Qué aromas te aparto?"
 - "¿La entrega es en Caracas, Miranda, La Guaira, Guarenas o Guatire?"
-- "¿Prefieres retirar en nuestro almacén de Caracas? Tiene una bonificación adicional."
+- "Te paso con el vendedor para coordinar el retiro o despacho de tu pedido."
 - "¿Prefieres pago móvil, transferencia o Zelle?"
 
 ## PRODUCTOS DISPONIBLES PARA EL PEDIDO
