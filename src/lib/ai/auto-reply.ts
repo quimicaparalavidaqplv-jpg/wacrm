@@ -130,6 +130,7 @@ export async function dispatchInboundToAiReply(
     // any up get `agent: null` and keep the single-persona behaviour.
     const agents = await loadActiveAgents(db, accountId)
     const route = await routeToAgent({
+      accountId,
       config,
       agents,
       messages,
@@ -162,11 +163,9 @@ export async function dispatchInboundToAiReply(
       agentPrompt: route.agent?.systemPrompt ?? null,
     })
 
-    const { text, handoff, usage } = await generateReply({
-      config,
-      systemPrompt,
-      messages,
-    })
+    const { text, handoff, usage } = route.preparedReply
+      ? { text: route.preparedReply, handoff: false, usage: null }
+      : await generateReply({ config, systemPrompt, messages })
 
     // Record token spend on the account's BYO key. Fire-and-forget so it
     // never adds latency to the customer-facing send: `logAiUsage`
@@ -285,13 +284,13 @@ export async function dispatchInboundToAiReply(
     // an advisor can take over. `escalateConversation` marks the thread
     // once and never throws.
     const slug = route.agent?.slug
-    if (slug === 'confirmar_pedido' || slug === 'soporte_humano') {
+    if (slug === 'confirmar_pedido' || slug === 'distribuidor' || slug === 'soporte_humano') {
       await escalateConversation({
         db,
         accountId,
         conversationId,
         contactId,
-        reason: slug === 'confirmar_pedido' ? 'compra' : 'soporte_humano',
+        reason: slug === 'soporte_humano' ? 'soporte_humano' : 'compra',
         messages,
       })
     }

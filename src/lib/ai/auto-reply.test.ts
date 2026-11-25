@@ -341,6 +341,34 @@ describe('dispatchInboundToAiReply — agent routing', () => {
     expect(h.engineSendText).toHaveBeenCalled()
   })
 
+  it.each([
+    ['distribuidor', 'compra'],
+    ['soporte_humano', 'soporte_humano'],
+    ['confirmar_pedido', 'compra'],
+    ['informacion_general', null],
+  ])('sends the reply and applies the sales alert policy for %s', async (slug, reason) => {
+    h.loadActiveAgents.mockResolvedValue([{ ...VENTAS, slug }])
+    await dispatchInboundToAiReply(ARGS)
+    expect(h.engineSendText).toHaveBeenCalledTimes(1)
+    if (reason) {
+      expect(h.escalateConversation).toHaveBeenCalledWith(expect.objectContaining({ reason }))
+    } else {
+      expect(h.escalateConversation).not.toHaveBeenCalled()
+    }
+  })
+
+  it('answers a classified out-of-catalog inquiry without pausing or alerting sales', async () => {
+    h.loadActiveAgents.mockResolvedValue([ORQ, { ...VENTAS, slug: 'informacion_general' }])
+    h.generateReply.mockResolvedValueOnce({ text: 'fuera_catalogo', handoff: false })
+    await dispatchInboundToAiReply({ ...ARGS, accountId: '37cd19c8-7806-4aaf-b7f5-f544899485ab' })
+    expect(h.generateReply).toHaveBeenCalledTimes(1)
+    expect(h.engineSendText).toHaveBeenCalledWith(expect.objectContaining({
+      text: expect.stringContaining('productos de limpieza al mayor'),
+    }))
+    expect(h.escalateConversation).not.toHaveBeenCalled()
+    expect(h.state.updatePayload).not.toHaveProperty('ai_autoreply_disabled')
+  })
+
   it('hands off rather than answering when no agent can be routed to', async () => {
     // Agents configured but none marked fallback, and the classifier
     // returns something unrecognisable → nothing legitimate to say.

@@ -67,7 +67,7 @@ export function buildSystemPrompt(args: {
   const parts: string[] = [
     'You are a customer-messaging assistant for a business that uses a WhatsApp CRM. ' +
       'You are shown the recent WhatsApp conversation between the business (assistant) and a customer (user). ' +
-      'Write the next reply the business should send to the customer.',
+      'Answer the latest customer message. Use earlier turns only to interpret it. A new greeting calls for a greeting, even if an older question was unanswered.',
     'Guidelines: reply in the same language the customer is writing in; keep it concise and friendly, suitable for WhatsApp; ' +
       'never invent facts, prices, order numbers, availability, or promises that are not supported by the conversation or the business context below; ' +
       'output only the message text — no quotes, no "Reply:" label, no preamble.',
@@ -97,7 +97,7 @@ export function buildSystemPrompt(args: {
   if (knowledge && knowledge.length > 0) {
     const fallback =
       mode === 'auto_reply'
-        ? `if they don't cover the question, do not guess — reply with exactly ${HANDOFF_SENTINEL} so a human can help`
+        ? `if neither the excerpts nor the business context support an answer, do not guess — reply with exactly ${HANDOFF_SENTINEL} so a human can help`
         : "if they don't cover the question, don't guess — say you'll check and follow up"
     parts.push(
       'Knowledge base — excerpts from the business\'s own documentation, retrieved for this question. ' +
@@ -107,6 +107,12 @@ export function buildSystemPrompt(args: {
           .join('\n\n---\n\n')}`,
     )
   }
+
+  parts.push(
+    'For a simple availability question about a product clearly outside the stated business category, or a discontinued line identified in the business context, answer politely that the business does not carry it and offer the products it does carry. ' +
+      'This answer is supported by the business context even when retrieved excerpts are unrelated or empty. A missing excerpt alone does not establish that an item within the business category is unavailable. ' +
+      'If the latest message is just a greeting, greet and offer help without answering earlier questions or mentioning earlier products. Distinguish what the customer wants to buy from where they plan to use it. Preserve explicit requests for a person and the business rules for distributor inquiries.',
+  )
 
   return parts.join('\n\n')
 }

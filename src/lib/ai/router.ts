@@ -21,6 +21,7 @@ const ROUTER_CONTEXT_TURNS = 6
 const MAX_TURN_CHARS = 400
 
 export interface RouteResult {
+  preparedReply?: string
   /** The agent that should answer, or null when none could be chosen. */
   agent: AiAgent | null
   /** Token cost of the classification call — null when no call was made
@@ -49,6 +50,7 @@ export interface RouteResult {
  * take down the reply. The provider error is logged, not propagated.
  */
 export async function routeToAgent(args: {
+  accountId?: string
   config: AiConfig
   agents: AiAgent[]
   messages: ChatMessage[]
@@ -64,15 +66,43 @@ export async function routeToAgent(args: {
 
   const sticky = agents.find((a) => a.id === stickyAgentId) ?? null
 
+  const catalogAgent = args.accountId === '37cd19c8-7806-4aaf-b7f5-f544899485ab'
+    ? agentBySlug(agents, 'informacion_general')
+    : null
+  if (catalogAgent) {
+    const latest = [...messages].reverse().find(message => message.role === 'user')?.content ?? ''
+    const normalized = latest.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[¿?¡!.,]/g, ' ').trim().replace(/\s+/g, ' ')
+    if (/^(?:hola |hola$)?(?:buenas(?: tardes| noches)?|buenos dias)?$/.test(normalized) && normalized) {
+      return {
+        agent: fallbackAgent(agents) ?? catalogAgent, reason: 'classified', usage: null,
+        preparedReply: '¡Hola! Gracias por escribirnos. ¿En qué te podemos ayudar?',
+      }
+    }
+    const support = agentBySlug(agents, 'soporte_humano')
+    if (support && /\b(?:quiero|deseo|necesito|puedo|podria) (?:hablar|comunicarme|conversar) con (?:un |una |el |la )?(?:asesor[a]?|vendedor[a]?|persona|humano)\b/.test(normalized) && !/\bno (?:quiero|deseo|necesito)\b/.test(normalized)) {
+      return {
+        agent: support, reason: 'classified', usage: null,
+        preparedReply: 'Con gusto. Voy a pasar tu consulta a nuestro equipo para que te atienda un asesor.',
+      }
+    }
+  }
   try {
     const { text, usage } = await generateReply({
       config,
-      systemPrompt: buildRouterPrompt(agents, sticky),
+      systemPrompt: buildRouterPrompt(agents, sticky, Boolean(catalogAgent)),
       messages: [
         { role: 'user', content: buildTranscript(messages) },
       ],
     })
 
+    if (catalogAgent && text.trim().toLowerCase() === 'fuera_catalogo') {
+      return {
+        agent: catalogAgent,
+        reason: 'classified',
+        usage,
+        preparedReply: 'Gracias por preguntar. Ese producto no lo vendemos. Trabajamos con productos de limpieza al mayor. ¿Te gustaría ver nuestro catálogo?',
+      }
+    }
     const picked = matchSlug(agents, text)
     if (picked) return { agent: picked, usage, reason: 'classified' }
 
@@ -102,6 +132,7 @@ export async function routeToAgent(args: {
 export function buildRouterPrompt(
   agents: AiAgent[],
   sticky: AiAgent | null,
+  qplvCatalog = false,
 ): string {
   const menu = agents
     .map((a) => `- ${a.slug}: ${a.description || a.name}`)
@@ -123,6 +154,13 @@ export function buildRouterPrompt(
       `Esta conversación la viene atendiendo el agente "${sticky.slug}". ` +
         'Mantén ese agente salvo que el último mensaje del cliente muestre claramente una intención distinta. ' +
         'La continuidad importa: no cambies de agente por un mensaje ambiguo o breve.',
+    )
+  }
+
+  if (qplvCatalog) {
+    parts.push(
+      'Opción adicional: fuera_catalogo. Elige este identificador para consultas de compra, cotización o disponibilidad de un producto claramente ajeno a productos de limpieza (alimentos como café, calzado, ropa o textiles). También aplica al mayor. ' +
+        'Si pregunta por un limpiador para su cafetería o para limpiar textiles, usa el agente comercial. Si pide asesor, reclama, solicita empleo o consulta el programa de distribuidores, prioriza esa intención. Si solo saluda, elige bienvenida sin retomar consultas anteriores.',
     )
   }
 

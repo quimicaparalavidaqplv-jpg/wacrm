@@ -85,6 +85,7 @@ export async function POST(request: Request) {
     // only ever route to their own account's agents.
     const agents = await loadActiveAgents(supabase, accountId)
     const route = await routeToAgent({
+      accountId,
       config,
       agents,
       messages,
@@ -123,7 +124,9 @@ export async function POST(request: Request) {
       agentPrompt: route.agent?.systemPrompt ?? null,
     })
 
-    const { text, handoff } = await generateReply({ config, systemPrompt, messages })
+    const { text, handoff } = route.preparedReply
+      ? { text: route.preparedReply, handoff: false }
+      : await generateReply({ config, systemPrompt, messages })
     return NextResponse.json({
       reply: text,
       handoff,
