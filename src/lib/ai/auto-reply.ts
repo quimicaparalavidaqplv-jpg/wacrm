@@ -1,7 +1,7 @@
 import { supabaseAdmin } from './admin-client'
 import { loadAiConfig } from './config'
 import { buildConversationContext } from './context'
-import { retrieveKnowledge } from './knowledge'
+import { salesGrounding } from './sales-grounding'
 import { generateReply } from './generate'
 import { buildSystemPrompt } from './defaults'
 import { buildHandoffSummary } from './handoff'
@@ -149,7 +149,7 @@ export async function dispatchInboundToAiReply(
     })
 
     // Ground the reply in the account's knowledge base (best-effort).
-    const knowledge = await retrieveKnowledge(
+    const { knowledge, userPrompt } = await salesGrounding(
       db,
       accountId,
       config,
@@ -157,7 +157,7 @@ export async function dispatchInboundToAiReply(
     )
 
     const systemPrompt = buildSystemPrompt({
-      userPrompt: config.systemPrompt,
+      userPrompt,
       mode: 'auto_reply',
       knowledge,
       agentPrompt: route.agent?.systemPrompt ?? null,

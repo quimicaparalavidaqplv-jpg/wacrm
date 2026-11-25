@@ -110,6 +110,7 @@ describe('routeToAgent', () => {
   it.each([
     ['Deseo hablar con un asesor sobre café', 'informacion_general', 'no lo vendemos'],
     ['Buenas, tienen blue jeans al mayor? Me pasas al encargado?', 'informacion_general', 'no lo vendemos'],
+    ['¿En cuánto me dejas la caja si pago de una?', 'informacion_general', 'mínimo de compra'],
     ['Pásame un vendedor, pana', 'informacion_general', 'te interesa comprar'],
     ['Quiero hablar con ventas para comprar cloro para mi cafetería', 'soporte_humano', 'equipo de ventas'],
   ])('qualifies QPLV sales inquiries: %s', async (content, slug, answer) => {

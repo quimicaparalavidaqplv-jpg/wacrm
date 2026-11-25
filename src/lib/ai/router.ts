@@ -1,3 +1,4 @@
+import { matchReview } from './sales-reviews'
 import type { AiAgent } from './agents'
 import { agentBySlug, fallbackAgent } from './agents'
 import { generateReply } from './generate'
@@ -82,6 +83,19 @@ export async function routeToAgent(args: {
       return {
         agent: fallbackAgent(agents) ?? catalogAgent, reason: 'classified', usage: null,
         preparedReply: '¡Hola! Gracias por escribirnos. ¿En qué te podemos ayudar?',
+      }
+    }
+    const asksBoxPrice = /\b(caja|cajita)\b/.test(normalized) && /\b(cuanto|cuesta|precio|sale|dejas)\b/.test(normalized)
+    const knownBox = /\b(cloro|lavaplatos|desinfectante)\b/.test(normalized) || matchReview(latest)?.id === 'pedido-minimo-v1'
+    if (asksBoxPrice && knownBox && !/\b(asesor|empleo|curriculo|cafe|zapatos|jeans)\b/.test(normalized)) {
+      const context = messages.filter(m => m.role === 'user').map(m => m.content.toLowerCase()).join(' ')
+      const identified = /\b(cloro|lavaplatos|desinfectante)\b/.test(context)
+      const quantity = /\b(\d+|una|dos|tres|cuatro|cinco|seis|diez)\s+(?:cajas?|cajitas?)\b/.test(context)
+      const channel = /\b(mayorista|al mayor|distribui\w*)\b/.test(context)
+      const missing = [!identified && 'qué producto necesitas', !quantity && 'cuántas cajas quieres llevar', !channel && 'si compras al mayor o como distribuidor'].filter(Boolean)
+      if (missing.length) {
+        return { agent: catalogAgent, reason: 'classified', usage: null,
+          preparedReply: `Para verificar el mínimo de compra y cotizarte, ¿me confirmas ${new Intl.ListFormat('es').format(missing as string[])}?` }
       }
     }
     const advisor = /\b(asesor[a]?|vendedor[a]?|encargad[oa]|ventas)\b/.test(normalized)

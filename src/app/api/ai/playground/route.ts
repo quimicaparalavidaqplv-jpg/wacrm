@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 import { loadAiConfig } from '@/lib/ai/config'
-import { retrieveKnowledge } from '@/lib/ai/knowledge'
+import { salesGrounding } from '@/lib/ai/sales-grounding'
 import { generateReply } from '@/lib/ai/generate'
 import { buildSystemPrompt } from '@/lib/ai/defaults'
 import { loadActiveAgents } from '@/lib/ai/agents'
@@ -31,6 +31,8 @@ export async function POST(request: Request) {
     if (!limit.success) return rateLimitResponse(limit)
 
     const body = await request.json().catch(() => null)
+    const simulateReview = body?.simulateReview === true
+    if (simulateReview) await requireRole('admin')
     const rawMessages = Array.isArray(body?.messages) ? body.messages : null
     if (!rawMessages) {
       return NextResponse.json({ error: 'messages is required' }, { status: 400 })
@@ -111,14 +113,15 @@ export async function POST(request: Request) {
       })
     }
 
-    const knowledge = await retrieveKnowledge(
+    const { knowledge, userPrompt } = await salesGrounding(
       supabase,
       accountId,
       config,
       latestUserMessage(messages),
+      simulateReview,
     )
     const systemPrompt = buildSystemPrompt({
-      userPrompt: config.systemPrompt,
+      userPrompt,
       mode: 'auto_reply',
       knowledge,
       agentPrompt: route.agent?.systemPrompt ?? null,

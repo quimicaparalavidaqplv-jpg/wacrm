@@ -5,12 +5,13 @@ import { Bot, Sparkles, Settings2, BarChart3, Users } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AgentRoster } from '@/components/agents/agent-roster';
 import { AiPlayground } from '@/components/agents/ai-playground';
+import { SalesReviews } from '@/components/agents/sales-reviews';
 import { AiUsageCard } from '@/components/agents/ai-usage';
 import { AiConfig } from '@/components/settings/ai-config';
 import { useAuth } from '@/hooks/use-auth';
 import { canEditSettings } from '@/lib/auth/roles';
 
-type Tab = 'roster' | 'playground' | 'setup' | 'usage';
+type Tab = 'roster' | 'playground' | 'setup' | 'usage' | 'reviews';
 
 export default function AgentsPage() {
   const { accountRole } = useAuth();
@@ -56,13 +57,14 @@ export default function AgentsPage() {
           onValueChange={(v) => setTab(v as Tab)}
           className="mt-6"
         >
-          <TabsList>
+          <TabsList className="h-auto max-w-full flex-wrap">
             <TabsTrigger value="roster">
               <Users className="mr-1.5 h-4 w-4" /> Agentes
             </TabsTrigger>
             <TabsTrigger value="playground">
               <Sparkles className="mr-1.5 h-4 w-4" /> Playground
             </TabsTrigger>
+            {canViewUsage && <TabsTrigger value="reviews">Mejoras pendientes</TabsTrigger>}
             <TabsTrigger value="setup">
               <Settings2 className="mr-1.5 h-4 w-4" /> Setup
             </TabsTrigger>
@@ -80,6 +82,8 @@ export default function AgentsPage() {
           <TabsContent value="playground" className="mt-4">
             <AiPlayground onGoToSetup={() => setTab('setup')} />
           </TabsContent>
+
+          {canViewUsage && <TabsContent value="reviews" className="mt-4"><SalesReviews /></TabsContent>}
 
           <TabsContent value="setup" className="mt-4">
             <AiConfig />
